@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FarmMantra - Crop Planner</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6f8;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .navbar {
+            background: #2e7d32;
+            color: white;
+            padding: 14px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .navbar h1 { font-size: 20px; }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            text-decoration: none;
+        }
+
+        .container { max-width: 760px; margin: 0 auto; padding: 24px 20px 40px; }
+
+        .panel {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            padding: 24px;
+        }
+
+        h2 { color: #2e7d32; font-size: 18px; margin-bottom: 14px; }
+
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+        .field { flex: 1; min-width: 180px; }
+        label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+
+        select, input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            background: white;
+        }
+        select:focus, input:focus { border-color: #2e7d32; }
+
+        button {
+            padding: 11px 22px;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover { background: #1b5e20; }
+
+        .summary {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+            font-size: 14px;
+            color: #555;
+        }
+        .summary strong { color: #2e7d32; }
+
+        .warning {
+            background: #fff8e1;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .timeline { margin-top: 18px; border-left: 3px solid #a5d6a7; padding-left: 20px; }
+        .step { position: relative; margin-bottom: 18px; }
+        .step::before {
+            content: "";
+            position: absolute;
+            left: -27px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #2e7d32;
+        }
+        .step .date { font-size: 12px; color: #888; }
+        .step .stage { font-weight: 600; font-size: 15px; margin-top: 2px; }
+        .step .action { font-size: 13px; color: #555; margin-top: 2px; line-height: 1.5; }
+
+        .msg { text-align: center; padding: 30px 10px; color: #888; }
+        .error { color: #c62828; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>🌾 FarmMantra</h1>
+    <a class="back-btn" href="/dashboard">← Dashboard</a>
+</div>
+
+<div class="container">
+    <div class="panel">
+        <h2>Plan your season</h2>
+        <div class="form-row">
+            <div class="field">
+                <label for="crop">Crop</label>
+                <select id="crop"></select>
+            </div>
+            <div class="field">
+                <label for="sowingDate">Sowing date</label>
+                <input type="date" id="sowingDate">
+            </div>
+            <button onclick="makePlan()">Create plan</button>
+        </div>
+    </div>
+
+    <div class="panel" id="result" style="margin-top: 20px; display: none;"></div>
+</div>
+
+<script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+        window.location.href = "/login-page";
+    }
+
+    const headers = { "Authorization": "Bearer " + token };
+
+    const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    const fmt = iso => new Date(iso + "T00:00:00")
+        .toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+    async function api(path) {
+        const res = await fetch(path, { headers });
+        if (res.status === 401) {
+            localStorage.removeItem("token");
+            window.location.href = "/login-page";
+            throw new Error("Session expired. Please log in again.");
+        }
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+    }
+
+    async function loadCrops() {
+        try {
+            const crops = await api("/api/planner/crops");
+            document.getElementById("crop").innerHTML = crops.map(c =>
+                `<option value="${c.id}">${esc(c.name)}${c.suitableForSoil ? "" : " (not ideal for your soil)"}</option>`
+            ).join("");
+        } catch (e) {
+            showError(e.message);
+        }
+    }
+
+    async function makePlan() {
+        const cropId = document.getElementById("crop").value;
+        const date = document.getElementById("sowingDate").value;
+        if (!date) {
+            showError("Please choose a sowing date.");
+            return;
+        }
+        try {
+            const p = await api(`/api/planner/plan?cropId=${cropId}&sowingDate=${date}`);
+            render(p);
+        } catch (e) {
+            showError(e.message);
+        }
+    }
+
+    function render(p) {
+        const warnings = p.warnings.map(w => `<div class="warning">⚠️ ${esc(w)}</div>`).join("");
+
+        const steps = p.milestones.map(m => `
+            <div class="step">
+                <div class="date">${esc(fmt(m.date))}</div>
+                <div class="stage">${esc(m.stage)}</div>
+                <div class="action">${esc(m.action)}</div>
+            </div>`).join("");
+
+        const box = document.getElementById("result");
+        box.style.display = "block";
+        box.innerHTML = `
+            <h2>${esc(p.cropName)} plan</h2>
+            <div class="summary">
+                <span>Sow: <strong>${esc(fmt(p.sowingDate))}</strong></span>
+                <span>Harvest: <strong>${esc(fmt(p.harvestDate))}</strong></span>
+            </div>
+            ${warnings}
+            <div class="timeline">${steps}</div>`;
+    }
+
+    function showError(message) {
+        const box = document.getElementById("result");
+        box.style.display = "block";
+        box.innerHTML = `<div class="msg error">${esc(message)}</div>`;
+    }
+
+    // Default the date picker to today's local date
+    document.getElementById("sowingDate").value = new Date().toLocaleDateString("sv-SE");
+    loadCrops();
+</script>
+</body>
+</html>

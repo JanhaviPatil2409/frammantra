@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FarmMantra - Profile</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6f8;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .navbar {
+            background: #2e7d32;
+            color: white;
+            padding: 14px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .navbar h1 { font-size: 20px; }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            text-decoration: none;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px 20px 40px;
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            padding: 24px;
+        }
+
+        h2 { color: #2e7d32; font-size: 18px; margin-bottom: 16px; }
+
+        /* Profile summary card */
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2e7d32, #66bb6a);
+            color: white;
+            font-size: 32px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+        }
+        .summary { text-align: center; }
+        .summary .name { font-size: 18px; font-weight: 600; }
+        .summary .phone { font-size: 13px; color: #888; margin-top: 2px; }
+        .badge {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 11px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 3px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .facts { margin-top: 18px; border-top: 1px solid #eee; padding-top: 14px; }
+        .fact { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; }
+        .fact span:first-child { color: #888; }
+        .fact span:last-child { font-weight: 600; color: #333; }
+
+        /* Forms */
+        .form-grid { display: grid; gap: 14px; }
+        label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            background: white;
+            font-family: inherit;
+        }
+        input:focus, select:focus { border-color: #2e7d32; }
+        input[readonly] { background: #f5f5f5; color: #888; }
+        .hint { font-size: 12px; color: #999; margin-top: 4px; }
+
+        .btn {
+            padding: 10px 20px;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            justify-self: start;
+        }
+        .btn:hover { background: #1b5e20; }
+
+        .divider { border-top: 1px solid #eee; margin: 26px 0; }
+
+        .msg { font-size: 13px; margin-top: 12px; min-height: 18px; }
+        .msg.ok { color: #2e7d32; }
+        .msg.err { color: #c62828; }
+
+        .page-error {
+            grid-column: 1 / -1;
+            color: #c62828;
+            text-align: center;
+            padding: 30px;
+        }
+
+        @media (max-width: 720px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>🌾 FarmMantra</h1>
+    <a class="back-btn" href="/dashboard">← Dashboard</a>
+</div>
+
+<div class="container" id="container">
+    <div class="panel summary">
+        <div class="avatar" id="avatar">?</div>
+        <div class="name" id="sName">Loading…</div>
+        <div class="phone" id="sPhone"></div>
+        <span class="badge" id="sRole"></span>
+
+        <div class="facts">
+            <div class="fact"><span>Location</span><span id="sLoc">—</span></div>
+            <div class="fact"><span>Soil type</span><span id="sSoil">—</span></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Edit details</h2>
+        <div class="form-grid">
+            <div>
+                <label for="name">Full name</label>
+                <input type="text" id="name">
+            </div>
+            <div>
+                <label for="phone">Phone number</label>
+                <input type="text" id="phone" readonly>
+                <div class="hint">Your phone number is your login ID and can't be changed here.</div>
+            </div>
+            <div>
+                <label for="location">Location (district)</label>
+                <input type="text" id="location" placeholder="e.g. Nashik">
+            </div>
+            <div>
+                <label for="soil">Soil type</label>
+                <select id="soil">
+                    <option value="BLACK">Black Soil</option>
+                    <option value="RED">Red Soil</option>
+                    <option value="ALLUVIAL">Alluvial Soil</option>
+                    <option value="LATERITE">Laterite Soil</option>
+                    <option value="SANDY">Sandy Soil</option>
+                </select>
+            </div>
+            <button class="btn" onclick="saveProfile()">Save changes</button>
+            <div class="msg" id="profileMsg"></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <h2>Change password</h2>
+        <div class="form-grid">
+            <div>
+                <label for="curPass">Current password</label>
+                <input type="password" id="curPass">
+            </div>
+            <div>
+                <label for="newPass">New password</label>
+                <input type="password" id="newPass" placeholder="Minimum 6 characters">
+            </div>
+            <div>
+                <label for="confPass">Confirm new password</label>
+                <input type="password" id="confPass">
+            </div>
+            <button class="btn" onclick="changePassword()">Update password</button>
+            <div class="msg" id="passMsg"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+        window.location.href = "/login-page";
+    }
+
+    const SOIL_LABELS = {
+        BLACK: "Black Soil", RED: "Red Soil", ALLUVIAL: "Alluvial Soil",
+        LATERITE: "Laterite Soil", SANDY: "Sandy Soil"
+    };
+
+    const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    async function api(path, method = "GET", body) {
+        const opts = { method, headers: { "Authorization": "Bearer " + token } };
+        if (body !== undefined) {
+            opts.headers["Content-Type"] = "application/json";
+            opts.body = JSON.stringify(body);
+        }
+        const res = await fetch(path, opts);
+
+        if (res.status === 401) {
+            localStorage.removeItem("token");
+            window.location.href = "/login-page";
+            throw new Error("Session expired. Please log in again.");
+        }
+
+        const text = await res.text();
+        if (!res.ok) throw new Error(text || "Request failed (" + res.status + ")");
+        return text ? JSON.parse(text) : null;
+    }
+
+    function setMsg(id, ok, text) {
+        const el = document.getElementById(id);
+        el.className = "msg " + (ok ? "ok" : "err");
+        el.innerText = text;
+    }
+
+    function fill(p) {
+        document.getElementById("avatar").innerText = (p.name || "?").charAt(0).toUpperCase();
+        document.getElementById("sName").innerText = p.name || "";
+        document.getElementById("sPhone").innerText = p.phone || "";
+        document.getElementById("sRole").innerText = p.role || "";
+        document.getElementById("sLoc").innerText = p.location || "—";
+        document.getElementById("sSoil").innerText = SOIL_LABELS[p.soilType] || "—";
+
+        document.getElementById("name").value = p.name || "";
+        document.getElementById("phone").value = p.phone || "";
+        document.getElementById("location").value = p.location || "";
+        document.getElementById("soil").value = p.soilType || "BLACK";
+    }
+
+    async function loadProfile() {
+        try {
+            fill(await api("/api/profile"));
+        } catch (e) {
+            document.getElementById("container").innerHTML =
+                `<div class="page-error">${esc(e.message)}</div>`;
+        }
+    }
+
+    async function saveProfile() {
+        const body = {
+            name: document.getElementById("name").value.trim(),
+            location: document.getElementById("location").value.trim(),
+            soilType: document.getElementById("soil").value
+        };
+        try {
+            fill(await api("/api/profile", "PUT", body));
+            setMsg("profileMsg", true, "Profile updated.");
+        } catch (e) {
+            setMsg("profileMsg", false, e.message);
+        }
+    }
+
+    async function changePassword() {
+        const cur = document.getElementById("curPass").value;
+        const next = document.getElementById("newPass").value;
+        const conf = document.getElementById("confPass").value;
+
+        if (!cur || !next) {
+            setMsg("passMsg", false, "Please fill in all password fields.");
+            return;
+        }
+        if (next !== conf) {
+            setMsg("passMsg", false, "New passwords do not match.");
+            return;
+        }
+
+        try {
+            await api("/api/profile/password", "POST",
+                { currentPassword: cur, newPassword: next });
+            ["curPass", "newPass", "confPass"].forEach(id =>
+                document.getElementById(id).value = "");
+            setMsg("passMsg", true, "Password changed.");
+        } catch (e) {
+            setMsg("passMsg", false, e.message);
+        }
+    }
+
+    loadProfile();
+</script>
+</body>
+</html>

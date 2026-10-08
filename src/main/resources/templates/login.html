@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FarmMantra - Login</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo h1 {
+            color: #2e7d32;
+            font-size: 26px;
+        }
+
+        .logo p {
+            color: #888;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.2s;
+            outline: none;
+        }
+
+        input:focus { border-color: #2e7d32; }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: #1b5e20; }
+
+        .msg {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+            text-align: center;
+        }
+
+        .msg.error { background: #ffebee; color: #c62828; display: block; }
+        .msg.success { background: #e8f5e9; color: #2e7d32; display: block; }
+
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .register-link a {
+            color: #2e7d32;
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="logo">
+        <h1>🌾 FarmMantra</h1>
+        <p>Smart Agriculture Advisory System</p>
+    </div>
+
+    <div class="form-group">
+        <label>Phone Number</label>
+        <input type="text" id="phone" placeholder="Enter your phone number">
+    </div>
+
+    <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter your password">
+    </div>
+
+    <button onclick="login()">Login</button>
+
+    <div class="msg" id="msg"></div>
+
+    <div class="register-link">
+        Don't have an account? <a href="/register-page">Register here</a>
+    </div>
+</div>
+
+<script>
+function login() {
+    const phone = document.getElementById("phone").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const msg = document.getElementById("msg");
+
+    msg.style.display = "block";
+
+    if (!phone || !password) {
+        msg.className = "msg error";
+        msg.innerText = "Please enter phone and password!";
+        return;
+    }
+
+    fetch("http://localhost:8081/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, password })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Invalid credentials");
+        return res.json();   // ✅ FIXED
+    })
+    .then(data => {
+        localStorage.setItem("token", data.token);  // ✅ FIXED
+
+        msg.className = "msg success";
+        msg.innerText = "Welcome " + data.name + "! Redirecting...";
+
+        setTimeout(() => {
+            window.location.href = "/dashboard";
+        }, 800);
+    })
+    .catch(() => {
+        msg.className = "msg error";
+        msg.innerText = "Invalid phone or password!";
+    });
+}
+
+// Allow Enter key
+document.addEventListener("keydown", e => {
+    if (e.key === "Enter") login();
+});
+</script>
+
+</body>
+</html>

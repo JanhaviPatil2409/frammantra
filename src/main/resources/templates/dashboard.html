@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>FarmMantra Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6f8;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: #2e7d32;
+            color: white;
+            padding: 14px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .navbar h1 { font-size: 20px; }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+        .welcome {
+            text-align: center;
+            padding: 30px 20px 10px;
+            color: #444;
+        }
+
+        .welcome h2 { font-size: 22px; color: #2e7d32; }
+        .welcome p { font-size: 14px; color: #888; margin-top: 4px; }
+
+        .health-score {
+            background: white;
+            max-width: 400px;
+            margin: 0 auto 20px;
+            padding: 20px 30px;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .health-score h3 { color: #2e7d32; font-size: 15px; margin-bottom: 8px; }
+
+        .score-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2e7d32, #66bb6a);
+            color: white;
+            font-size: 26px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px auto;
+        }
+
+        .score-label { font-size: 12px; color: #888; }
+
+        .score-detail {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            width: 180px;
+            padding: 28px 20px;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: center;
+            border: 2px solid transparent;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: #2e7d32;
+            box-shadow: 0 8px 25px rgba(46,125,50,0.15);
+        }
+
+        .card .icon { font-size: 36px; margin-bottom: 12px; }
+
+        .card .title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .card .desc {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>🌾 FarmMantra</h1>
+    <div class="navbar-right">
+        <span id="welcomeName">Welcome</span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="welcome">
+    <h2 id="greeting">Hello! 🌤️</h2>
+    <p>Here's your farm overview for today</p>
+</div>
+
+<div class="health-score">
+    <h3>🏆 Farm Health Score</h3>
+    <div class="score-circle" id="scoreCircle">--</div>
+    <div class="score-label" id="scoreLabel">Calculating…</div>
+    <div class="score-detail" id="scoreDetail"></div>
+</div>
+
+<div class="grid">
+    <div class="card" onclick="go('/advisory')">
+        <div class="icon">🌦️</div>
+        <div class="title">Advisory</div>
+        <div class="desc">Weather & schemes</div>
+    </div>
+
+    <div class="card" onclick="go('/disease')">
+        <div class="icon">🌿</div>
+        <div class="title">Disease Detection</div>
+        <div class="desc">Upload crop photo</div>
+    </div>
+
+    <div class="card" onclick="go('/planner')">
+        <div class="icon">🌱</div>
+        <div class="title">Crop Planner</div>
+        <div class="desc">Plan your season</div>
+    </div>
+
+    <div class="card" onclick="go('/marketplace')">
+        <div class="icon">🛒</div>
+        <div class="title">Marketplace</div>
+        <div class="desc">Buy & sell produce</div>
+    </div>
+
+    <div class="card" onclick="go('/profile')">
+        <div class="icon">👤</div>
+        <div class="title">Profile</div>
+        <div class="desc">Your farm details</div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+        window.location.href = "/login-page";
+    }
+
+    function go(path) {
+        window.location.href = path;
+    }
+
+    function logout() {
+        localStorage.removeItem("token");
+        window.location.href = "/login-page";
+    }
+
+    function timeGreeting() {
+        const h = new Date().getHours();
+        if (h < 12) return "Good Morning";
+        if (h < 17) return "Good Afternoon";
+        return "Good Evening";
+    }
+
+    async function api(path) {
+        const res = await fetch(path, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        if (res.status === 401) {
+            localStorage.removeItem("token");
+            window.location.href = "/login-page";
+            throw new Error("Session expired");
+        }
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+    }
+
+    async function loadName() {
+        try {
+            const profile = await api("/api/profile");
+            const firstName = (profile.name || "Farmer").trim().split(/\s+/)[0];
+            document.getElementById("welcomeName").textContent = "Welcome, " + firstName;
+            document.getElementById("greeting").textContent =
+                timeGreeting() + ", " + firstName + "! 🌤️";
+        } catch (err) {
+            console.error(err);
+            document.getElementById("welcomeName").textContent = "Welcome, Farmer";
+            document.getElementById("greeting").textContent = timeGreeting() + "! 🌤️";
+        }
+    }
+
+    async function loadScore() {
+        const circle = document.getElementById("scoreCircle");
+        const label = document.getElementById("scoreLabel");
+        const detail = document.getElementById("scoreDetail");
+
+        let score = 100;
+        const notes = [];
+        let gotData = false;
+
+        // Crop health from the latest disease check
+        try {
+            const history = await api("/api/disease/history");
+            gotData = true;
+            if (history.length === 0) {
+                notes.push("No crop checks yet. Run a leaf check to include crop health.");
+            } else if (history[0].healthy) {
+                notes.push("Latest crop check: healthy plant.");
+            } else {
+                const latest = history[0];
+                score -= 20 + Math.round(30 * latest.confidence);
+                notes.push("Latest crop check found " + latest.diseaseName + ".");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+
+        // Weather risk from the advisory
+        try {
+            const advisory = await api("/api/advisory");
+            gotData = true;
+            const warnings = advisory.advisories.filter(t => t.severity === "warning").length;
+            const dangers = advisory.advisories.filter(t => t.severity === "danger").length;
+            score -= warnings * 8 + dangers * 15;
+            notes.push(warnings + dangers > 0
+                ? "Weather alerts this week: " + (warnings + dangers) + "."
+                : "No weather alerts this week.");
+        } catch (err) {
+            console.error(err);
+        }
+
+        if (!gotData) {
+            circle.textContent = "--";
+            label.textContent = "Unavailable";
+            detail.textContent = "Could not load farm data right now.";
+            return;
+        }
+
+        score = Math.max(0, Math.min(100, score));
+        circle.textContent = score;
+        label.textContent = score >= 75 ? "Good" : score >= 50 ? "Fair" : "Needs attention";
+        detail.textContent = notes.join(" ");
+    }
+
+    if (token) {
+        loadName();
+        loadScore();
+    }
+</script>
+</body>
+</html>

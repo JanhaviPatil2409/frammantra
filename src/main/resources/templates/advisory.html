@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FarmMantra - Advisory</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6f8;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .navbar {
+            background: #2e7d32;
+            color: white;
+            padding: 14px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .navbar h1 { font-size: 20px; }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            text-decoration: none;
+        }
+
+        .container { max-width: 960px; margin: 0 auto; padding: 24px 20px 40px; }
+
+        h2 { color: #2e7d32; font-size: 18px; margin: 28px 0 12px; }
+        .subtitle { color: #888; font-size: 13px; margin-top: 4px; }
+
+        .panel {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            padding: 20px;
+        }
+
+        .now {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .now .temp { font-size: 44px; font-weight: 700; color: #2e7d32; }
+        .now .meta { font-size: 13px; color: #666; line-height: 1.7; }
+
+        .forecast {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+        .day {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            padding: 14px 10px;
+            text-align: center;
+            font-size: 13px;
+        }
+        .day .dname { font-weight: 600; color: #333; }
+        .day .icon { font-size: 26px; margin: 6px 0; }
+        .day .hi { color: #d84315; font-weight: 600; }
+        .day .lo { color: #1565c0; }
+        .day .rain { color: #888; font-size: 12px; margin-top: 4px; }
+
+        .tip {
+            display: flex;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .tip .cat { font-weight: 600; min-width: 150px; }
+        .tip.info    { background: #e3f2fd; }
+        .tip.warning { background: #fff8e1; }
+        .tip.danger  { background: #ffebee; }
+
+        .crops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .crop-chip {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .schemes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+        .scheme {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .scheme .tag {
+            align-self: flex-start;
+            font-size: 11px;
+            background: #f1f8e9;
+            color: #558b2f;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+        .scheme h3 { font-size: 16px; color: #333; }
+        .scheme p { font-size: 13px; color: #555; line-height: 1.5; }
+        .scheme .elig { font-size: 12px; color: #888; }
+        .scheme a {
+            margin-top: auto;
+            align-self: flex-start;
+            color: #2e7d32;
+            font-weight: 600;
+            font-size: 13px;
+            text-decoration: none;
+        }
+
+        .loading, .error {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+        .error { color: #c62828; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>🌾 FarmMantra</h1>
+    <a class="back-btn" href="/dashboard">← Dashboard</a>
+</div>
+
+<div class="container">
+    <div class="subtitle" id="header">Loading your farm advisory…</div>
+    <div id="content">
+        <div class="loading">Fetching weather and advice…</div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+        window.location.href = "/login-page";
+    }
+
+    // Escape text before inserting it into HTML
+    const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    const dayName = iso => new Date(iso + "T00:00:00")
+        .toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+
+    const weatherIcon = chance => chance >= 60 ? "🌧️" : chance >= 30 ? "⛅" : "☀️";
+
+    function render(data) {
+        const w = data.weather;
+
+        document.getElementById("header").innerText =
+            "Advisory for " + data.location + " · Soil: " + data.soilType;
+
+        const forecastHtml = w.days.map(d => `
+            <div class="day">
+                <div class="dname">${esc(dayName(d.date))}</div>
+                <div class="icon">${weatherIcon(d.rainChance)}</div>
+                <div class="hi">${Math.round(d.tempMax)}°</div>
+                <div class="lo">${Math.round(d.tempMin)}°</div>
+                <div class="rain">Rain ${Math.round(d.rainMm)} mm · ${d.rainChance}%</div>
+            </div>`).join("");
+
+        const tipsHtml = data.advisories.map(t => `
+            <div class="tip ${esc(t.severity)}">
+                <div class="cat">${esc(t.category)}</div>
+                <div>${esc(t.message)}</div>
+            </div>`).join("");
+
+        const cropsHtml = data.suitableCrops.length
+            ? data.suitableCrops.map(c => `<span class="crop-chip">${esc(c)}</span>`).join("")
+            : `<span class="subtitle">No crop suggestions for this soil type yet.</span>`;
+
+        const schemesHtml = data.schemes.map(s => `
+            <div class="scheme">
+                <span class="tag">${esc(s.category)}</span>
+                <h3>${esc(s.name)}</h3>
+                <p>${esc(s.description)}</p>
+                <div class="elig"><strong>Eligibility:</strong> ${esc(s.eligibility)}</div>
+                <a href="${esc(s.link)}" target="_blank" rel="noopener">Official site →</a>
+            </div>`).join("");
+
+        document.getElementById("content").innerHTML = `
+            <h2>Current conditions</h2>
+            <div class="panel now">
+                <div class="temp">${Math.round(w.current.temperature)}°C</div>
+                <div class="meta">
+                    Humidity: ${w.current.humidity}%<br>
+                    Wind: ${Math.round(w.current.windSpeed)} km/h
+                </div>
+            </div>
+
+            <h2>7-day forecast</h2>
+            <div class="forecast">${forecastHtml}</div>
+
+            <h2>Today's advisory</h2>
+            ${tipsHtml}
+
+            <h2>Crops suited to your soil</h2>
+            <div class="panel"><div class="crops">${cropsHtml}</div></div>
+
+            <h2>Government schemes</h2>
+            <div class="schemes">${schemesHtml}</div>
+        `;
+    }
+
+    function showError(message) {
+        document.getElementById("header").innerText = "";
+        document.getElementById("content").innerHTML =
+            `<div class="error">${esc(message)}</div>`;
+    }
+
+    async function loadAdvisory() {
+        try {
+            const res = await fetch("/api/advisory", {
+                headers: { "Authorization": "Bearer " + token }
+            });
+
+            if (res.status === 401) {
+                localStorage.removeItem("token");
+                window.location.href = "/login-page";
+                return;
+            }
+            if (!res.ok) {
+                throw new Error(await res.text());
+            }
+
+            render(await res.json());
+        } catch (err) {
+            showError("Could not load advisory: " + err.message);
+        }
+    }
+
+    loadAdvisory();
+</script>
+</body>
+</html>
