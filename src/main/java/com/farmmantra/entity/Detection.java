@@ -45,6 +45,5 @@ public class Detection {
     @Column(columnDefinition = "TEXT")
     private String prevention;     // one item per line
 
-    @Column(columnDefinition = "DATETIME")
     private LocalDateTime createdAt;
 }

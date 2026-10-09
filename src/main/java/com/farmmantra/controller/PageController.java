@@ -45,4 +45,9 @@ public class PageController {
     public String diseasePage() {
         return "disease";
     }
+
+    @GetMapping("/")
+    public String home() {
+    return "redirect:/login-page";
+    }
 }

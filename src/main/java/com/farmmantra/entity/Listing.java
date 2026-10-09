@@ -38,6 +38,5 @@ public class Listing {
 
     private String status;        // AVAILABLE or SOLD
 
-    @Column(columnDefinition = "DATETIME")
     private LocalDateTime createdAt;
 }
