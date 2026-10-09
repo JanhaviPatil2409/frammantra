@@ -1,5 +1,7 @@
 package com.farmmantra.service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,11 +21,15 @@ public class WeatherService {
     private static final String DEFAULT_LOCATION = "Nashik";
     private static final double DEFAULT_LAT = 19.9975;
     private static final double DEFAULT_LON = 73.7898;
+    private static final Duration FORECAST_TTL = Duration.ofMinutes(30);
 
     private final RestClient http = RestClient.create();
     private final Map<String, Coordinates> geoCache = new ConcurrentHashMap<>();
+    private final Map<String, CachedForecast> forecastCache = new ConcurrentHashMap<>();
 
     public record Coordinates(double lat, double lon, String resolvedName) {}
+
+    private record CachedForecast(AdvisoryDto.Weather weather, Instant fetchedAt) {}
 
     /** Turns a district name such as "Nashik" into coordinates. Cached in memory. */
     public Coordinates geocode(String location) {
@@ -32,23 +38,49 @@ public class WeatherService {
     }
 
     private Coordinates lookup(String query) {
-        JsonNode root = http.get()
-                .uri(GEO_URL + "?name={name}&count=1&countryCode=IN&format=json", query)
-                .retrieve()
-                .body(JsonNode.class);
+        try {
+            JsonNode root = http.get()
+                    .uri(GEO_URL + "?name={name}&count=1&countryCode=IN&format=json", query)
+                    .retrieve()
+                    .body(JsonNode.class);
 
-        JsonNode first = (root == null) ? null : root.path("results").path(0);
-        if (first == null || first.isMissingNode()) {
+            JsonNode first = (root == null) ? null : root.path("results").path(0);
+            if (first == null || first.isMissingNode()) {
+                return new Coordinates(DEFAULT_LAT, DEFAULT_LON, DEFAULT_LOCATION);
+            }
+            return new Coordinates(
+                    first.path("latitude").asDouble(),
+                    first.path("longitude").asDouble(),
+                    first.path("name").asText(query));
+        } catch (RuntimeException e) {
+            // If geocoding fails, fall back to the default location instead of failing the page
             return new Coordinates(DEFAULT_LAT, DEFAULT_LON, DEFAULT_LOCATION);
         }
-        return new Coordinates(
-                first.path("latitude").asDouble(),
-                first.path("longitude").asDouble(),
-                first.path("name").asText(query));
     }
 
-    /** Fetches current conditions and a 7-day daily forecast. */
+    /** Returns the forecast, reusing results for 30 minutes to limit API calls. */
     public AdvisoryDto.Weather getForecast(Coordinates c) {
+        String key = c.lat() + "," + c.lon();
+        CachedForecast cached = forecastCache.get(key);
+
+        if (cached != null && cached.fetchedAt().plus(FORECAST_TTL).isAfter(Instant.now())) {
+            return cached.weather();
+        }
+
+        try {
+            AdvisoryDto.Weather fresh = fetchForecast(c);
+            forecastCache.put(key, new CachedForecast(fresh, Instant.now()));
+            return fresh;
+        } catch (RuntimeException e) {
+            // Rate limited or offline: serve the last good data if we have it
+            if (cached != null) {
+                return cached.weather();
+            }
+            throw e;
+        }
+    }
+
+    private AdvisoryDto.Weather fetchForecast(Coordinates c) {
         JsonNode root = http.get()
                 .uri(FORECAST_URL + "?latitude={lat}&longitude={lon}"
                         + "&current=temperature_2m,relative_humidity_2m,wind_speed_10m"
